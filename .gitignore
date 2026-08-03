@@ -1,0 +1,35 @@
+# Lua tooling
+.luarocks/
+luarocks/
+*.rock
+*.rockspec.bak
+
+# Build and output directories
+build/
+dist/
+out/
+tmp/
+
+# Compiled native modules
+*.so
+*.dll
+*.o
+*.obj
+
+# Static analysis cache
+.luacheckcache/
+
+# Coverage reports
+luacov.stats.out
+luacov.report.out
+coverage/
+
+# LOVE runtime files
+love-save/
+*.tmp
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
