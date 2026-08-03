@@ -10,37 +10,37 @@ local MODULUS = 2147483647
 local MULTIPLIER = 48271
 
 function rng.new(seed)
-  local self = setmetatable({}, rng)
-  self:seed(seed or 1)
-  return self
+   local self = setmetatable({}, rng)
+   self:seed(seed or 1)
+   return self
 end
 
 function rng:seed(seed)
-  self.state = seed % MODULUS
-  if self.state == 0 then
-    self.state = 1
-  end
-  return self
+   self.state = seed % MODULUS
+   if self.state == 0 then
+      self.state = 1
+   end
+   return self
 end
 
 function rng:next_int()
-  self.state = (self.state * MULTIPLIER) % MODULUS
-  return self.state
+   self.state = (self.state * MULTIPLIER) % MODULUS
+   return self.state
 end
 
 -- Returns a float in the half-open interval [0, 1).
 function rng:float()
-  return self:next_int() / MODULUS
+   return self:next_int() / MODULUS
 end
 
 -- Returns a float in the interval [low, high).
 function rng:range(low, high)
-  return low + (high - low) * self:float()
+   return low + (high - low) * self:float()
 end
 
 -- Returns an integer in the closed interval [low, high].
 function rng:integer(low, high)
-  return math.floor(self:range(low, high + 1))
+   return math.floor(self:range(low, high + 1))
 end
 
 return rng

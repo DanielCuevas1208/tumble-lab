@@ -1,0 +1,60 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.4"
+      - uses: leafo/gh-actions-luarocks@v4
+      - name: Install luacheck
+        run: luarocks install luacheck 1.2.0
+      - name: Run luacheck
+        run: luacheck .
+
+  format:
+    name: Format
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: JohnnyMorganz/stylua-action@v4
+        with:
+          version: "2.5.2"
+          token: ${{ secrets.GITHUB_TOKEN }}
+          args: --check .
+
+  test:
+    name: Test on ${{ matrix.luaVersion }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        luaVersion: ["5.4", "luajit-2.1"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: ${{ matrix.luaVersion }}
+      - uses: leafo/gh-actions-luarocks@v4
+      - name: Install busted
+        run: luarocks install busted 2.3.0-1
+      - name: Run test suite
+        run: busted spec
+      - name: Smoke scenarios headless
+        run: |
+          lua tools/run.lua stack --steps 30 --quiet
+          lua tools/run.lua drop --steps 60 --quiet
+          lua tools/run.lua throw --steps 60 --quiet
+          lua tools/run.lua heap --steps 120 --quiet
+      - name: Verify record and replay
+        run: |
+          lua tools/run.lua heap --steps 180 --seed 7 --record run.tumble --quiet
+          lua tools/run.lua --replay run.tumble
