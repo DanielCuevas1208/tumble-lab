@@ -23,6 +23,10 @@ tmp/
 luacov.stats.out
 luacov.report.out
 coverage/
+.busted/
+
+# Headless recordings
+*.tumble
 
 # LOVE runtime files
 love-save/

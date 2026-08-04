@@ -5,7 +5,6 @@
 local Body = require("engine.body")
 local collide = require("engine.collide")
 local solver = require("engine.solver")
-local config = require("engine.config")
 
 local World = {}
 World.__index = World

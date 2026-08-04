@@ -100,6 +100,17 @@ local function print_state(world)
   end
 end
 
+local function sort_scenario_names()
+  local names = {}
+  for name in pairs(scenarios) do
+    if type(scenarios[name]) == "function" then
+      names[#names + 1] = name
+    end
+  end
+  table.sort(names)
+  return names
+end
+
 local function run_scenario(opts)
   local scenario = scenarios[opts.scenario_name]
   if not scenario then
@@ -167,17 +178,6 @@ local function replay_file(opts)
     end
   end
   return matches and 0 or 2
-end
-
-local function sort_scenario_names()
-  local names = {}
-  for name in pairs(scenarios) do
-    if type(scenarios[name]) == "function" then
-      names[#names + 1] = name
-    end
-  end
-  table.sort(names)
-  return names
 end
 
 local opts = parse_args(arg)
