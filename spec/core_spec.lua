@@ -96,6 +96,53 @@ describe("deterministic scenarios", function()
   end)
 end)
 
+describe("broadphase", function()
+  it("finds the same overlapping pairs as brute-force tests", function()
+    local Broadphase = require("engine.broadphase")
+    local world = scenarios.swarm({ seed = 3, count = 40 })
+    local bodies = world.bodies
+    local grid = Broadphase.new(1.0)
+    grid:build(bodies)
+
+    local brute = {}
+    for i = 1, #bodies do
+      for j = i + 1, #bodies do
+        if world:aabb_overlap(bodies[i], bodies[j]) then
+          brute[#brute + 1] = { i, j }
+        end
+      end
+    end
+
+    local indexed = {}
+    grid:for_pairs(bodies, function(i, j)
+      if world:aabb_overlap(bodies[i], bodies[j]) then
+        indexed[#indexed + 1] = { i, j }
+      end
+    end)
+
+    assert(#indexed == #brute)
+    for k = 1, #brute do
+      assert(indexed[k][1] == brute[k][1])
+      assert(indexed[k][2] == brute[k][2])
+    end
+  end)
+
+  it("builds identical swarm worlds from the same seed", function()
+    local first = scenarios.swarm({ seed = 11, count = 50 })
+    local second = scenarios.swarm({ seed = 11, count = 50 })
+    assert(deep_equal(snapshot(first), snapshot(second)))
+  end)
+
+  it("steps a swarm scene without error", function()
+    local world = scenarios.swarm({ seed = 5, count = 30 })
+    for _ = 1, 30 do
+      world:step(1 / 60)
+    end
+    assert(world.stats.contact_count >= 0)
+    assert(#world.bodies == 31)
+  end)
+end)
+
 describe("recording", function()
   it("rebuilds and replays every captured frame exactly", function()
     local world = scenarios.heap({ seed = 9, count = 6 })

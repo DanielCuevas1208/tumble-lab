@@ -57,6 +57,12 @@ local scene_specs = {
     summary = "Seeded bodies show mixed contacts.",
     build = scenarios.heap,
   },
+  {
+    key = "swarm",
+    label = "Swarm",
+    summary = "Many bodies test the broadphase grid.",
+    build = scenarios.swarm,
+  },
 }
 
 local app = {
@@ -251,7 +257,7 @@ local function draw_sidebar()
   set_color(colors.panel)
   love.graphics.rectangle("fill", 20, height - 130, SIDEBAR_WIDTH - 40, 104, 6, 6)
   print_text("CONTROLS", 32, height - 116, colors.muted)
-  print_text("1-4  select scene", 32, height - 94, colors.text)
+  print_text("1-5  select scene", 32, height - 94, colors.text)
   print_text("R    reset    Space  pause", 32, height - 74, colors.text)
   print_text("N    step     +/-    time scale", 32, height - 54, colors.text)
   print_text("[ ]  previous or next scene", 32, height - 34, colors.text)

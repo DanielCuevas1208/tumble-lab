@@ -8,6 +8,7 @@ return {
   default_friction = 0.4,
   default_restitution = 0.0,
   max_substeps = 4,
+  broadphase_cell_size = 1.0,
 }
 
 

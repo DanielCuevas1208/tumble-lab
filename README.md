@@ -12,6 +12,7 @@ It exposes the same deterministic world through a LOVE sandbox and a headless ru
 - Compare free-flight motion with an analytic trajectory.
 - Rebuild recorded runs and compare every captured frame.
 - Explore seeded scenes with repeatable body placement.
+- Stress the broadphase grid with a wide swarm scene.
 - Read the engine without a framework abstraction layer.
 
 ## Architecture
@@ -22,13 +23,18 @@ The LOVE sandbox renders bodies and simulation state.
 
 The headless runner prints final state and validates recordings.
 
-The engine keeps body, collision, solver, and recording modules separate.
+The engine keeps body, broadphase, collision, solver, and recording modules separate.
 
 ~~~text
 LOVE sandbox ----+
-                  +-- scenarios -- engine world -- collision and solver
-headless CLI ----+                 +-- recorder
+                  +-- scenarios -- engine world -- broadphase
+headless CLI ----+                 +-- collision and solver
+                                   +-- recorder
 ~~~
+
+The broadphase uses a uniform grid. Each body occupies every cell its AABB overlaps.
+
+Candidate pairs sort by body index. This matches the original pair order.
 
 ## Setup
 
@@ -48,7 +54,7 @@ love .
 
 ## Interactive sandbox
 
-Select a scene with keys 1 through 4.
+Select a scene with keys 1 through 5.
 
 Press R to reset the selected scene.
 
@@ -65,6 +71,8 @@ The sidebar reports simulated time, steps, bodies, contacts, and time scale.
 Contact points use orange markers.
 
 Velocity vectors use cyan lines.
+
+The swarm scene places 80 seeded bodies across a wide floor.
 
 ## Headless runner
 
@@ -85,7 +93,13 @@ id  shape             x          y         vx         vy      angle
 contact impulse (last step): 0.000000
 ~~~
 
-Use --seed N for the seeded heap.
+Run the swarm scene:
+
+~~~text
+lua tools/run.lua swarm --steps 60 --seed 17 --quiet
+~~~
+
+Use --seed N for the seeded heap or swarm.
 
 Use --dt S to select a fixed timestep.
 
@@ -113,16 +127,16 @@ Use --tolerance S for an accepted numeric difference.
 
 ## Test status
 
-Local verification passes Luacheck, Lua syntax, the LOVE callback harness, and the headless smoke path.
+Local verification passes Luacheck, Lua syntax, and the headless smoke path.
 
-Busted remains a CI check because this workspace cannot download LuaRocks packages.
+CI runs Luacheck, Busted specs, and the headless smoke check.
 
 ## Tests
 
 Run the deterministic specs:
 
 ~~~text
-busted --output plain
+busted
 ~~~
 
 Run the linter:
@@ -141,13 +155,13 @@ The CI workflow runs all three checks.
 
 ## Limitations
 
-Collision detection checks every body pair.
+The broadphase uses a fixed cell size. Very large bodies span many cells.
 
 The solver uses a fixed iteration budget.
 
 The engine does not provide continuous collision detection.
 
-The engine does not provide joints, sleeping, or a broadphase index.
+The engine does not provide joints, sleeping, or adaptive cell sizing.
 
 The project does not promise production stability.
 

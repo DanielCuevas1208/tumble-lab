@@ -36,7 +36,7 @@ jobs:
         run: luacheck .
 
       - name: Run deterministic specs
-        run: busted --output plain
+        run: busted
 
       - name: Run headless smoke test
         run: lua tools/run.lua heap --steps 12 --seed 42 --quiet
