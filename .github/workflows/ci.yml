@@ -1,0 +1,42 @@
+name: verify
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Lua ${{ matrix.lua }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        lua: ["5.4"]
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Lua
+        uses: leafo/gh-actions-lua@v11
+        with:
+          luaVersion: ${{ matrix.lua }}
+
+      - name: Set up LuaRocks
+        uses: leafo/gh-actions-luarocks@v5
+
+      - name: Install check tools
+        run: |
+          luarocks install busted 2.2.0-1
+          luarocks install luacheck 1.2.0-1
+
+      - name: Lint
+        run: luacheck .
+
+      - name: Run deterministic specs
+        run: busted
+
+      - name: Run headless smoke test
+        run: lua tools/run.lua heap --steps 12 --seed 42 --quiet

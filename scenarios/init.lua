@@ -91,12 +91,35 @@ function scenarios.heap(opts)
   return world
 end
 
+-- A wide seeded scatter for broadphase stress testing.
+function scenarios.swarm(opts)
+  opts = opts or {}
+  local generator = rng.new(opts.seed or 17)
+  local count = opts.count or 80
+  local world = World.new(0, 9.81)
+  add_ground(world, 24)
+  for _ = 1, count do
+    local size = generator:range(0.10, 0.22)
+    local is_circle = generator:float() < 0.4
+    local body_shape = is_circle and shape.circle(size) or shape.box(size, generator:range(0.10, 0.22))
+    world:add_body({
+      shape = body_shape,
+      position = { x = generator:range(-10, 10), y = generator:range(-12, -2) },
+      angle = generator:range(0, math.pi * 2),
+      angular_velocity = generator:range(-2, 2),
+      friction = 0.45,
+    })
+  end
+  return world
+end
+
 -- Default simulation lengths, in seconds.
 scenarios.duration = {
   stack = 20,
   drop = 6,
   throw = 4,
   heap = 30,
+  swarm = 25,
 }
 
 return scenarios

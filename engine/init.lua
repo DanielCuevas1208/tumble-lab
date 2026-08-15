@@ -6,6 +6,7 @@ return {
   shape = require("engine.shape"),
   Body = require("engine.body"),
   World = require("engine.world"),
+  broadphase = require("engine.broadphase"),
   collide = require("engine.collide"),
   solver = require("engine.solver"),
   Recorder = require("engine.recorder"),

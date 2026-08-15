@@ -3,9 +3,10 @@
 -- insertion order and the contact list is built in body order.
 
 local Body = require("engine.body")
+local broadphase = require("engine.broadphase")
 local collide = require("engine.collide")
-local solver = require("engine.solver")
 local config = require("engine.config")
+local solver = require("engine.solver")
 
 local World = {}
 World.__index = World
@@ -19,6 +20,7 @@ function World.new(gravity_x, gravity_y)
   self.step_count = 0
   self.on_step = nil
   self.stats = { normal_impulse = 0, tangent_impulse = 0, contact_count = 0 }
+  self.broadphase = broadphase.new(config.broadphase_cell_size)
   return self
 end
 
@@ -103,25 +105,23 @@ function World:step(dt)
   end
 end
 
--- Builds the contact list for this step. Pair order follows body order,
--- which keeps the result deterministic.
+-- Builds the contact list for this step. The broadphase limits pair tests,
+-- and sorted candidate order keeps the result deterministic.
 function World:detect_contacts()
   local contacts = {}
   local bodies = self.bodies
-  for i = 1, #bodies do
-    local a = bodies[i]
-    for j = i + 1, #bodies do
-      local b = bodies[j]
-      if a:is_dynamic() or b:is_dynamic() then
-        if self:aabb_overlap(a, b) then
-          local contact = collide.collide(a, b)
-          if contact then
-            contacts[#contacts + 1] = contact
-          end
+  self.broadphase:build(bodies)
+  self.broadphase:for_pairs(bodies, function(i, j)
+    local a, b = bodies[i], bodies[j]
+    if a:is_dynamic() or b:is_dynamic() then
+      if self:aabb_overlap(a, b) then
+        local contact = collide.collide(a, b)
+        if contact then
+          contacts[#contacts + 1] = contact
         end
       end
     end
-  end
+  end)
   return contacts
 end
 

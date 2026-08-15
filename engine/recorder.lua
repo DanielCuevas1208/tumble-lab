@@ -120,7 +120,9 @@ function Recorder:serialize()
       for _, v in ipairs(def.vertices) do
         parts[#parts + 1] = string.format("%s %s", fmt(v.x), fmt(v.y))
       end
-      parts[#parts + 1] = string.format("%s %s %s %s", fmt(def.density), fmt(def.friction), fmt(def.restitution), kind)
+      parts[#parts + 1] = string.format(
+        "%s %s %s %s", fmt(def.density), fmt(def.friction), fmt(def.restitution), kind
+      )
       lines[#lines + 1] = table.concat(parts, " ")
     end
   end

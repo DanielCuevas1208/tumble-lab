@@ -21,7 +21,8 @@ return function(a, b)
     contact.normal.y = 1
     contact.depth = radius_sum
   end
-  contact:add_point(ax + contact.normal.x * (a.shape.radius - contact.depth * 0.5), ay + contact.normal.y * (a.shape.radius - contact.depth * 0.5))
+  local offset = a.shape.radius - contact.depth * 0.5
+  contact:add_point(ax + contact.normal.x * offset, ay + contact.normal.y * offset)
   contact:compute_tangent()
   return contact
 end
