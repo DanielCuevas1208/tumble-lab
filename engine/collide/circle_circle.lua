@@ -7,7 +7,7 @@ return function(a, b)
   local dx, dy = bx - ax, by - ay
   local radius_sum = a.shape.radius + b.shape.radius
   local dist_sq = dx * dx + dy * dy
-  if dist_sq > radius_sum * radius_sum then
+  if dist_sq > radius_sum * radius_sum + 1e-12 then
     return nil
   end
   local contact = manifold.new(a, b)
@@ -15,7 +15,7 @@ return function(a, b)
     local dist = math.sqrt(dist_sq)
     contact.normal.x = dx / dist
     contact.normal.y = dy / dist
-    contact.depth = radius_sum - dist
+    contact.depth = math.max(radius_sum - dist, 0)
   else
     contact.normal.x = 0
     contact.normal.y = 1

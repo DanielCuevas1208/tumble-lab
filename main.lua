@@ -63,6 +63,12 @@ local scene_specs = {
     summary = "Many bodies test the broadphase grid.",
     build = scenarios.swarm,
   },
+  {
+    key = "ccd",
+    label = "CCD",
+    summary = "A fast circle meets a target.",
+    build = scenarios.ccd,
+  },
 }
 
 local app = {
@@ -220,7 +226,7 @@ local function draw_sidebar()
 
   print_text("SCENES", 28, 120, colors.muted)
   for index, item in ipairs(scene_specs) do
-    local y = 148 + (index - 1) * 55
+    local y = 142 + (index - 1) * 43
     if index == app.scene_index then
       set_color(colors.panel_highlight)
       love.graphics.rectangle("fill", 20, y - 8, SIDEBAR_WIDTH - 40, 43, 6, 6)
@@ -252,15 +258,20 @@ local function draw_sidebar()
     status_y + 112,
     colors.text
   )
-  print_text(string.format("time scale %0.2fx", app.time_scale), 28, status_y + 132, colors.text)
+  print_text(
+    string.format("ccd events %06d", app.world.stats.continuous_events),
+    28,
+    status_y + 132,
+    colors.text
+  )
+  print_text(string.format("time scale %0.2fx", app.time_scale), 28, status_y + 150, colors.text)
 
   set_color(colors.panel)
-  love.graphics.rectangle("fill", 20, height - 130, SIDEBAR_WIDTH - 40, 104, 6, 6)
-  print_text("CONTROLS", 32, height - 116, colors.muted)
-  print_text("1-5  select scene", 32, height - 94, colors.text)
-  print_text("R    reset    Space  pause", 32, height - 74, colors.text)
-  print_text("N    step     +/-    time scale", 32, height - 54, colors.text)
-  print_text("[ ]  previous or next scene", 32, height - 34, colors.text)
+  love.graphics.rectangle("fill", 20, height - 88, SIDEBAR_WIDTH - 40, 72, 6, 6)
+  print_text("CONTROLS", 32, height - 76, colors.muted)
+  print_text("1-6  select scene", 32, height - 56, colors.text)
+  print_text("R reset  Space pause  N step", 32, height - 38, colors.text)
+  print_text("[ ] scene  +/- scale", 32, height - 20, colors.text)
 end
 
 local function draw_canvas_labels()

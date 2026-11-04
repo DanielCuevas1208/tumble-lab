@@ -113,6 +113,24 @@ function scenarios.swarm(opts)
   return world
 end
 
+-- A fast circle tests the continuous circle-versus-static-circle path.
+function scenarios.ccd(opts)
+  opts = opts or {}
+  local world = World.new(0, 0)
+  world:add_body({
+    shape = shape.circle(opts.target_radius or 0.5),
+    kind = "static",
+    position = { x = 0, y = 0 },
+  })
+  world:add_body({
+    shape = shape.circle(opts.radius or 0.25),
+    position = { x = opts.x or -6, y = opts.y or 0 },
+    velocity = { x = opts.speed or 600, y = opts.vy or 0 },
+    restitution = opts.restitution or 0,
+  })
+  return world
+end
+
 -- Default simulation lengths, in seconds.
 scenarios.duration = {
   stack = 20,
@@ -120,6 +138,7 @@ scenarios.duration = {
   throw = 4,
   heap = 30,
   swarm = 25,
+  ccd = 1,
 }
 
 return scenarios

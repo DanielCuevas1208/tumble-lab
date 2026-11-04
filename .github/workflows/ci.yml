@@ -40,3 +40,6 @@ jobs:
 
       - name: Run headless smoke test
         run: lua tools/run.lua heap --steps 12 --seed 42 --quiet
+
+      - name: Run continuous collision smoke test
+        run: lua tools/run.lua ccd --steps 1 --quiet
