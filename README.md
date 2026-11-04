@@ -6,6 +6,8 @@ It solves circle and convex polygon contacts with sequential impulses.
 
 It exposes the same deterministic world through a LOVE sandbox and a headless runner.
 
+The 0.4 release adds continuous collision handling for one documented circle pair.
+
 ## Value
 
 - Inspect contact points, velocity vectors, body counts, and solver impulses.
@@ -13,6 +15,7 @@ It exposes the same deterministic world through a LOVE sandbox and a headless ru
 - Rebuild recorded runs and compare every captured frame.
 - Explore seeded scenes with repeatable body placement.
 - Stress the broadphase grid with a wide swarm scene.
+- Watch a fast circle stop at a static circle target.
 - Read the engine without a framework abstraction layer.
 
 ## Architecture
@@ -23,7 +26,7 @@ The LOVE sandbox renders bodies and simulation state.
 
 The headless runner prints final state and validates recordings.
 
-The engine keeps body, broadphase, collision, solver, and recording modules separate.
+The engine keeps body, broadphase, collision, solver, continuous collision, and recording modules separate.
 
 ~~~text
 LOVE sandbox ----+
@@ -35,6 +38,10 @@ headless CLI ----+                 +-- collision and solver
 The broadphase uses a uniform grid. Each body occupies every cell its AABB overlaps.
 
 Candidate pairs sort by body index. This matches the original pair order.
+
+The continuous path solves a time-of-impact query before each fixed-step position update.
+
+The current pair is a dynamic circle against a static circle. The world records event order for replay tests.
 
 ## Setup
 
@@ -54,7 +61,7 @@ love .
 
 ## Interactive sandbox
 
-Select a scene with keys 1 through 5.
+Select a scene with keys 1 through 6.
 
 Press R to reset the selected scene.
 
@@ -73,6 +80,16 @@ Contact points use orange markers.
 Velocity vectors use cyan lines.
 
 The swarm scene places 80 seeded bodies across a wide floor.
+
+The CCD scene fires a fast circle at a static circle. The sidebar shows continuous events for the last step.
+
+## Continuous collision
+
+The CCD path prevents tunneling for a dynamic circle against a static circle.
+
+It uses the relative-motion quadratic to find the first impact inside the fixed timestep.
+
+It processes events by time, then body ID. This keeps event order stable across replay runs.
 
 ## Headless runner
 
@@ -105,6 +122,24 @@ Use --dt S to select a fixed timestep.
 
 Use --quiet to print no state table.
 
+Run the continuous collision scene:
+
+~~~text
+lua tools/run.lua ccd --steps 1
+~~~
+
+Example output:
+
+~~~text
+scenario: ccd | steps: 1 | dt: 0.016666666666666666 | simulated: 0.017 s
+bodies: 2
+id  shape             x          y         vx         vy      angle
+1   circle       0.0000     0.0000     0.0000     0.0000     0.0000
+2   circle      -0.7500     0.0000     0.0000     0.0000     0.0000
+contact impulse (last step): 0.000000
+continuous events (last step): 1
+~~~
+
 ## Record and replay
 
 Record a run:
@@ -127,9 +162,11 @@ Use --tolerance S for an accepted numeric difference.
 
 ## Test status
 
-Local verification passes Luacheck, Lua syntax, and the headless smoke path.
+Local verification passes Luacheck, Lua syntax, the headless smoke path, and a Lua spec harness.
 
-CI runs Luacheck, Busted specs, and the headless smoke check.
+Busted is not installed in the local environment.
+
+CI runs Luacheck, Busted specs, and both headless smoke checks.
 
 ## Tests
 
@@ -151,7 +188,7 @@ Run the headless smoke check:
 lua tools/run.lua heap --steps 12 --seed 42 --quiet
 ~~~
 
-The CI workflow runs all three checks.
+The CI workflow runs all repository checks.
 
 ## Limitations
 
@@ -159,7 +196,11 @@ The broadphase uses a fixed cell size. Very large bodies span many cells.
 
 The solver uses a fixed iteration budget.
 
-The engine does not provide continuous collision detection.
+Continuous collision detection covers only dynamic circles against static circles.
+
+The solver processes at most eight continuous impacts per fixed step.
+
+Polygon CCD and dynamic-body CCD remain planned.
 
 The engine does not provide joints, sleeping, or adaptive cell sizing.
 

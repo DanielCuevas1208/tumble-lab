@@ -7,6 +7,7 @@ return {
   Body = require("engine.body"),
   World = require("engine.world"),
   broadphase = require("engine.broadphase"),
+  continuous = require("engine.continuous"),
   collide = require("engine.collide"),
   solver = require("engine.solver"),
   Recorder = require("engine.recorder"),

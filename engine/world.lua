@@ -6,20 +6,25 @@ local Body = require("engine.body")
 local broadphase = require("engine.broadphase")
 local collide = require("engine.collide")
 local config = require("engine.config")
+local continuous = require("engine.continuous")
 local solver = require("engine.solver")
 
 local World = {}
 World.__index = World
 
-function World.new(gravity_x, gravity_y)
+-- Set options.continuous_collision to false when a discrete baseline is required.
+function World.new(gravity_x, gravity_y, options)
+  options = options or {}
   local self = setmetatable({}, World)
   self.gravity = { x = gravity_x or 0, y = gravity_y or 9.81 }
+  self.continuous_collision = options.continuous_collision ~= false
   self.bodies = {}
   self._next_body_id = 1
   self.contact_cache = {}
   self.step_count = 0
   self.on_step = nil
-  self.stats = { normal_impulse = 0, tangent_impulse = 0, contact_count = 0 }
+  self.stats = { normal_impulse = 0, tangent_impulse = 0, contact_count = 0, continuous_events = 0 }
+  self.last_continuous_events = {}
   self.broadphase = broadphase.new(config.broadphase_cell_size)
   return self
 end
@@ -55,6 +60,8 @@ function World:clear()
   self.contact_cache = {}
   self._next_body_id = 1
   self.step_count = 0
+  self.last_continuous_events = {}
+  self.stats.continuous_events = 0
 end
 
 function World:body_by_id(id)
@@ -70,27 +77,11 @@ function World:set_on_step(callback)
   self.on_step = callback
 end
 
--- Steps the simulation by a fixed time slice.
-function World:step(dt)
-  for _, body in ipairs(self.bodies) do
-    body._dirty = true
+local function integrate_positions(bodies, dt)
+  if dt <= 0 then
+    return
   end
-  for _, body in ipairs(self.bodies) do
-    if body:is_dynamic() then
-      body.velocity.x = body.velocity.x + (self.gravity.x + body.force.x * body.inv_mass) * dt
-      body.velocity.y = body.velocity.y + (self.gravity.y + body.force.y * body.inv_mass) * dt
-      body.angular_velocity = body.angular_velocity + body.torque * body.inv_inertia * dt
-      body.force.x = 0
-      body.force.y = 0
-      body.torque = 0
-    end
-  end
-
-  local contacts = self:detect_contacts()
-  self.stats.contact_count = #contacts
-  solver.solve(contacts, self.contact_cache, self.stats, dt)
-
-  for _, body in ipairs(self.bodies) do
+  for _, body in ipairs(bodies) do
     if body:is_dynamic() then
       body.position.x = body.position.x + body.velocity.x * dt
       body.position.y = body.position.y + body.velocity.y * dt
@@ -98,6 +89,68 @@ function World:step(dt)
       body._dirty = true
     end
   end
+end
+
+local function apply_forces(bodies, gravity, dt)
+  for _, body in ipairs(bodies) do
+    if body:is_dynamic() then
+      body.velocity.x = body.velocity.x + (gravity.x + body.force.x * body.inv_mass) * dt
+      body.velocity.y = body.velocity.y + (gravity.y + body.force.y * body.inv_mass) * dt
+      body.angular_velocity = body.angular_velocity + body.torque * body.inv_inertia * dt
+      body.force.x = 0
+      body.force.y = 0
+      body.torque = 0
+    end
+  end
+end
+
+local function solve_contact(world, contact, dt)
+  if not contact then
+    return
+  end
+  world.stats.contact_count = 1
+  solver.solve({ contact }, world.contact_cache, world.stats, math.max(dt, 1e-9))
+end
+
+-- Steps the simulation by a fixed time slice.
+function World:step(dt)
+  for _, body in ipairs(self.bodies) do
+    body._dirty = true
+  end
+  apply_forces(self.bodies, self.gravity, dt)
+
+  self.last_continuous_events = {}
+  self.stats.continuous_events = 0
+  local remaining = dt
+  local event_count = 0
+  while self.continuous_collision and remaining > 1e-12 and event_count < config.max_toi_events do
+    local event = continuous.find_earliest(self.bodies, remaining)
+    if not event then
+      break
+    end
+
+    integrate_positions(self.bodies, event.time)
+    remaining = math.max(0, remaining - event.time)
+    for _, impact in ipairs(event.events or { event }) do
+      if event_count >= config.max_toi_events then
+        break
+      end
+      event_count = event_count + 1
+      self.stats.continuous_events = event_count
+      self.last_continuous_events[#self.last_continuous_events + 1] = {
+        time = dt - remaining,
+        a_id = impact.a.id,
+        b_id = impact.b.id,
+      }
+      solve_contact(self, collide.collide(impact.a, impact.b), remaining)
+    end
+  end
+
+  integrate_positions(self.bodies, remaining)
+
+  local contacts = self:detect_contacts()
+  self.stats.contact_count = #contacts
+  solver.solve(contacts, self.contact_cache, self.stats, dt)
 
   self.step_count = self.step_count + 1
   if self.on_step then

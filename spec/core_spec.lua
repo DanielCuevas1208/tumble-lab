@@ -1,6 +1,7 @@
 package.path = "./?.lua;./?/init.lua;" .. package.path
 
 local Recorder = require("engine.recorder")
+local World = require("engine.world")
 local scenarios = require("scenarios")
 local shape = require("engine.shape")
 local vec = require("engine.vec")
@@ -140,6 +141,88 @@ describe("broadphase", function()
     end
     assert(world.stats.contact_count >= 0)
     assert(#world.bodies == 31)
+  end)
+end)
+
+describe("continuous collision", function()
+  local function circle_fixture(enabled)
+    local world = World.new(0, 0, { continuous_collision = enabled })
+    world:add_body({
+      shape = shape.circle(0.5),
+      kind = "static",
+      position = { x = 0, y = 0 },
+    })
+    world:add_body({
+      shape = shape.circle(0.25),
+      position = { x = -6, y = 0 },
+      velocity = { x = 600, y = 0 },
+    })
+    return world
+  end
+
+  it("prevents a fast circle from tunneling through a static circle", function()
+    local discrete = circle_fixture(false)
+    discrete:step(1 / 60)
+    assert(discrete.bodies[2].position.x > 0)
+
+    local continuous_world = circle_fixture(true)
+    continuous_world:step(1 / 60)
+    assert(continuous_world.bodies[2].position.x < -0.5)
+    assert(continuous_world.bodies[2].velocity.x == 0)
+    assert(continuous_world.stats.continuous_events == 1)
+  end)
+
+  it("keeps continuous event order stable", function()
+    local world = World.new(0, 0)
+    world:add_body({ shape = shape.circle(0.5), kind = "static", position = { x = 0, y = 0 } })
+    world:add_body({
+      shape = shape.circle(0.25),
+      position = { x = -6, y = 0 },
+      velocity = { x = 600, y = 0 },
+    })
+    world:add_body({ shape = shape.circle(0.5), kind = "static", position = { x = 0, y = 2 } })
+    world:add_body({
+      shape = shape.circle(0.25),
+      position = { x = -6, y = 2 },
+      velocity = { x = 600, y = 0 },
+    })
+
+    world:step(1 / 60)
+
+    assert(#world.last_continuous_events == 2)
+    assert(world.last_continuous_events[1].a_id == 1)
+    assert(world.last_continuous_events[1].b_id == 2)
+    assert(world.last_continuous_events[2].a_id == 3)
+    assert(world.last_continuous_events[2].b_id == 4)
+  end)
+
+  it("preserves exact replay for the continuous collision scene", function()
+    local world = scenarios.ccd()
+    local recorder = Recorder.new(world)
+    recorder.dt = 1 / 60
+    world:set_on_step(function()
+      recorder:tick()
+    end)
+    recorder:start()
+    for _ = 1, 6 do
+      world:step(recorder.dt)
+    end
+    recorder:stop()
+
+    local recording = Recorder.deserialize(recorder:serialize())
+    local replay_world = Recorder.rebuild_world(recording)
+    local replay = Recorder.new(replay_world)
+    replay.dt = recording.dt
+    replay_world:set_on_step(function()
+      replay:tick()
+    end)
+    replay:start()
+    for _ = 1, #recording.frames - 1 do
+      replay_world:step(recording.dt)
+    end
+    replay:stop()
+
+    assert(Recorder.frames_match(replay.frames, recording.frames, 0))
   end)
 end)
 

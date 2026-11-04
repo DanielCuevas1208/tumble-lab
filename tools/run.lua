@@ -144,6 +144,7 @@ local function run_scenario(opts)
     ))
     print_state(world)
     print(string.format("contact impulse (last step): %.6f", world.stats.normal_impulse))
+    print(string.format("continuous events (last step): %d", world.stats.continuous_events))
   end
   return 0
 end
